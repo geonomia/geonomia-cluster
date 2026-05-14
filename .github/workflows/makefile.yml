@@ -35,7 +35,7 @@ jobs:
         cd dwcagent-src
 
         # If your entrypoint package differs, change ./cmd/server to the correct main package path.
-        go build -o "$GITHUB_WORKSPACE/dwcagent-server" ./cmd/server
+        go build -o dwcagent-server ./cmd/dwcagent-server
 
     - name: Run cluster build
       run: |
