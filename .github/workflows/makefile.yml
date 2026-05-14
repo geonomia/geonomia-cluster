@@ -60,5 +60,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: occurrences-${{ env.GBIF_DOWNLOAD_COUNTRYCODE }}
-        path: data/occurrences-${{ env.GBIF_DOWNLOAD_COUNTRYCODE }}-*.tsv
+        path: |
+          data/occurrences-${{ env.GBIF_DOWNLOAD_COUNTRYCODE }}-*.tsv
+          data/citation.json
 
