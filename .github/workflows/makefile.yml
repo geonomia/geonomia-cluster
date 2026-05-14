@@ -17,7 +17,7 @@ jobs:
       GBIF_DOWNLOAD_COUNTRYCODE: ${{ vars.GBIF_DOWNLOAD_COUNTRYCODE }}
       DWCAGENT_REPO: https://github.com/bionomia/dwc_agent_golang
       DWCAGENT_REF: main
-      DWCAGENT_PORT: "7564"
+      DWCAGENT_PORT: "7654"
 
     steps:
     - uses: actions/checkout@v3
@@ -50,7 +50,7 @@ jobs:
         sleep 2
 
         # Verify it's actually up before proceeding
-        curl --fail --retry 10 --retry-delay 1 --retry-connrefused "http://localhost:${DWCAGENT_PORT}/health"
+        curl --fail --retry 10 --retry-delay 1 --retry-connrefused "http://127.0.0.1:${DWCAGENT_PORT}/health"
 
         # Run the build
         make all
