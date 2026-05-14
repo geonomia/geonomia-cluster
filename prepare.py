@@ -282,6 +282,7 @@ def main():
 
     # Set up a null-safe mask to gather rows where recordnumber_contains_year is True, and display a sample of the recordnumber, year, and the parsed components for those rows, to understand how often the year is included in the recordnumber and in what format
     mask = df_occ["recordnumber_contains_year"].fillna(False)
+    mask_count = mask.sum()
     print(
         df_occ[mask][
             [
@@ -294,7 +295,7 @@ def main():
                 "recordnumber_ancillarynumber",
                 "recordnumber_suffix",
             ]
-        ].sample(250)
+        ].sample(min(250, mask_count))
     )
     # print('Most frequently occurring recordnumber mainnumber values:')
     # print(df_occ.recordnumber_mainnumber.value_counts().head(20))
