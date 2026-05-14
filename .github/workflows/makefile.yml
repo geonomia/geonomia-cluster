@@ -1,0 +1,64 @@
+name: Makefile CI
+
+on:
+  workflow_dispatch:
+  push:
+    tags:        
+      - v*.**
+      
+jobs:
+      
+  build:
+
+    runs-on: ubuntu-latest
+
+    env:
+      GBIF_DOWNLOAD_ID: ${{ vars.GBIF_DOWNLOAD_ID }}
+      GBIF_DOWNLOAD_COUNTRYCODE: ${{ vars.GBIF_DOWNLOAD_COUNTRYCODE }}
+      DWCAGENT_REPO: https://github.com/bionomia/dwc_agent_golang
+      DWCAGENT_REF: main
+      DWCAGENT_PORT: "7564"
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22.x'
+
+    - name: Clone and build dwcagent-server
+      run: |
+        set -euo pipefail
+
+        git clone --depth 1 --branch "$DWCAGENT_REF" "$DWCAGENT_REPO" dwcagent-src
+        cd dwcagent-src
+
+        # If your entrypoint package differs, change ./cmd/server to the correct main package path.
+        go build -o "$GITHUB_WORKSPACE/dwcagent-server" ./cmd/server
+
+    - name: Run cluster build
+      run: |
+        set -euo pipefail
+
+        # Start the agent server in the background
+        ./dwcagent-server &
+        SERVER_PID=$!
+        trap 'kill "$SERVER_PID" 2>/dev/null || true; wait "$SERVER_PID" 2>/dev/null || true' EXIT
+
+        # Give it a moment to bind
+        sleep 2
+
+        # Verify it's actually up before proceeding
+        curl --fail --retry 10 --retry-delay 1 --retry-connrefused "http://localhost:${DWCAGENT_PORT}/health"
+
+        # Run the build
+        make all
+
+    - name: Attach built artifacts (data/occurrences-${GBIF_DOWNLOAD_COUNTRYCODE}-*.tsv) to run 
+      if: ${{ github.event_name == 'workflow_dispatch'}}
+      uses: actions/upload-artifact@v4
+      with:
+        name: occurrences-${GBIF_DOWNLOAD_COUNTRYCODE}-*.tsv
+        path: data/occurrences-${GBIF_DOWNLOAD_COUNTRYCODE}-*.tsv
+

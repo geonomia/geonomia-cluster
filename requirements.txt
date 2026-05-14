@@ -1,0 +1,8 @@
+Jinja2
+matplotlib
+pandas
+pygbif
+requests
+scikit-learn
+seaborn
+tqdm
