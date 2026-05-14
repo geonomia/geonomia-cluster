@@ -42,7 +42,7 @@ jobs:
         set -euo pipefail
 
         # Start the agent server in the background
-        ./dwcagent-server &
+        ./dwcagent-src/dwcagent-server &
         SERVER_PID=$!
         trap 'kill "$SERVER_PID" 2>/dev/null || true; wait "$SERVER_PID" 2>/dev/null || true' EXIT
 
