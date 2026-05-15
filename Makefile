@@ -3,12 +3,14 @@
 GBIF_OCCURRENCES_URL_BASE := https://api.gbif.org/v1/occurrence/download/request/
 # As downloads are defined using countrycode, we also use a GBIF_DOWNLOAD_COUNTRYCODE
 # environment variable to label the download and the prepared and clustered files, 
-# e.g. occurrences-prepared-COUNTRYCODE.tsv
+# e.g. occurrences-COUNTRYCODE-prepared.tsv
 
 DOWNLOAD_DIR  := downloads
 DATA_DIR      := data
 VENV_DIR      := .venv
 VENV_SENTINEL := $(VENV_DIR)/.installed
+
+USE_LOCAL_RECORDEDBY_PARSE ?= false
 
 ifeq ($(OS),Windows_NT)
 VENV_BIN      := $(VENV_DIR)/Scripts
@@ -21,6 +23,23 @@ SYSTEM_PYTHON ?= python3
 PYTHON        := $(VENV_BIN)/python
 PIP           := $(VENV_BIN)/pip
 endif
+
+ifeq ($(USE_LOCAL_RECORDEDBY_PARSE),true)
+  USE_LOCAL_RECORDEDBY_PARSE_ARGS := --use_local_recordedby_parse
+  DWC_AGENT_GOLANG_DEP := $(VENV_BIN)/dwcagent-server
+else
+  USE_LOCAL_RECORDEDBY_PARSE_ARGS :=
+  DWC_AGENT_GOLANG_DEP := 
+endif
+
+$(VENV_BIN)/dwcagent-server: 
+	wget -O dwc_agent_golang.zip https://github.com/bionomia/dwc_agent_golang/archive/refs/heads/main.zip
+	unzip dwc_agent_golang.zip -d dwc_agent_golang
+	# Build the dwcagentgo binary and place in VENV_BIN
+	cd dwc_agent_golang/dwc_agent_golang-main && go build -o dwcagent-server ./cmd/dwcagent-server
+	cp dwc_agent_golang/dwc_agent_golang-main/dwcagent-server $(VENV_BIN)/dwcagent-server
+	rm dwc_agent_golang.zip
+	rm -rf dwc_agent_golang
 
 DOWNLOADED_FILE  := $(DOWNLOAD_DIR)/occurrences-$(GBIF_DOWNLOAD_COUNTRYCODE).zip
 PREPARED_FILE    := $(DATA_DIR)/occurrences-$(GBIF_DOWNLOAD_COUNTRYCODE)-prepared.tsv
@@ -82,12 +101,25 @@ $(DOWNLOADED_FILE): $(VENV_SENTINEL)
 download: $(DOWNLOADED_FILE)
 
 ## Prepare the downloaded occurrence TSV (process recordedBy and recordNumber)
-$(PREPARED_FILE): $(PREPARE_SCRIPT) $(DOWNLOADED_FILE) $(VENV_SENTINEL)
+$(PREPARED_FILE): $(PREPARE_SCRIPT) $(DOWNLOADED_FILE) $(VENV_SENTINEL) $(DWC_AGENT_GOLANG_DEP)
 	mkdir -p $(DATA_DIR)
-	$(PYTHON) $(PREPARE_SCRIPT) \
-		--columns_required $(PREPARE_COLS_REQD) \
-		--columns_optional $(PREPARE_COLS_HELPER) \
-		--use_local_recordedby_parse $(DOWNLOADED_FILE) $@
+	if [ "$(USE_LOCAL_RECORDEDBY_PARSE)" = "true" ]; then \
+		set -euo pipefail; \
+		$(VENV_BIN)/dwcagent-server & \
+		SERVER_PID=$$!; \
+		trap 'kill $$SERVER_PID 2>/dev/null || true; wait $$SERVER_PID 2>/dev/null || true' EXIT; \
+		curl --fail --retry 20 --retry-delay 1 --retry-connrefused "http://127.0.0.1:7654/health"; \
+		$(PYTHON) $(PREPARE_SCRIPT) \
+			--columns_required $(PREPARE_COLS_REQD) \
+			--columns_optional $(PREPARE_COLS_HELPER) \
+			$(USE_LOCAL_RECORDEDBY_PARSE_ARGS) \
+			$(DOWNLOADED_FILE) $@; \
+	else \
+		$(PYTHON) $(PREPARE_SCRIPT) \
+			--columns_required $(PREPARE_COLS_REQD) \
+			--columns_optional $(PREPARE_COLS_HELPER) \
+			$(DOWNLOADED_FILE) $@; \
+	fi
 
 prepare: $(PREPARED_FILE)
 
