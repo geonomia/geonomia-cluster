@@ -27,33 +27,8 @@ jobs:
       with:
         go-version: '1.22.x'
 
-    - name: Clone and build dwcagent-server
-      run: |
-        set -euo pipefail
-
-        git clone --depth 1 --branch "$DWCAGENT_REF" "$DWCAGENT_REPO" dwcagent-src
-        cd dwcagent-src
-
-        # If your entrypoint package differs, change ./cmd/server to the correct main package path.
-        go build -o dwcagent-server ./cmd/dwcagent-server
-
     - name: Run cluster build
-      run: |
-        set -euo pipefail
-
-        # Start the agent server in the background
-        ./dwcagent-src/dwcagent-server &
-        SERVER_PID=$!
-        trap 'kill "$SERVER_PID" 2>/dev/null || true; wait "$SERVER_PID" 2>/dev/null || true' EXIT
-
-        # Give it a moment to bind
-        sleep 2
-
-        # Verify it's actually up before proceeding
-        curl --fail --retry 10 --retry-delay 1 --retry-connrefused "http://127.0.0.1:${DWCAGENT_PORT}/health"
-
-        # Run the build
-        make all
+      run: make all --USE_LOCAL_RECORDEDBY_PARSE=true
 
     - name: Attach built artifacts to run
       if: ${{ github.event_name == 'workflow_dispatch'}}
