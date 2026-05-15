@@ -20,10 +20,10 @@ jobs:
       DWCAGENT_PORT: "7654"
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version: '1.22.x'
 
@@ -32,7 +32,7 @@ jobs:
 
     - name: Attach built artifacts to run
       if: ${{ github.event_name == 'workflow_dispatch'}}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: occurrences-${{ env.GBIF_DOWNLOAD_COUNTRYCODE }}
         path: |
