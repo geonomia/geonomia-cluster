@@ -104,7 +104,7 @@ download: $(DOWNLOADED_FILE)
 $(PREPARED_FILE): $(PREPARE_SCRIPT) $(DOWNLOADED_FILE) $(VENV_SENTINEL) $(DWC_AGENT_GOLANG_DEP)
 	mkdir -p $(DATA_DIR)
 	if [ "$(USE_LOCAL_RECORDEDBY_PARSE)" = "true" ]; then \
-		set -euo pipefail; \
+		set -eu; \
 		$(VENV_BIN)/dwcagent-server & \
 		SERVER_PID=$$!; \
 		trap 'kill $$SERVER_PID 2>/dev/null || true; wait $$SERVER_PID 2>/dev/null || true' EXIT; \
