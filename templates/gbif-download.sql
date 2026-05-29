@@ -50,7 +50,9 @@ SELECT
     hascoordinate,
     hasgeospatialissues,
     issequenced,
+    institutioncode,
     institutionkey,
+    collectioncode,
     collectionkey,
     isincluster
 FROM
