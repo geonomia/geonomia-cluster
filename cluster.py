@@ -11,7 +11,7 @@ def do_clustering(df, cluster_cols, eps=20, min_samples=5, id_col_name='gbifid',
     clustering_data = df[[id_col_name] + cluster_cols].dropna()
 
     # Perform DBSCAN clustering
-    dbscan = DBSCAN(eps=eps, min_samples=min_samples)
+    dbscan = DBSCAN(eps=eps, min_samples=min_samples, n_jobs=-1)
     clustering_data[cluster_col_name] = dbscan.fit_predict(clustering_data[cluster_cols])
 
     # join cluster results back to the main dataframe
