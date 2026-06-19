@@ -9,7 +9,7 @@ def fetch_doi(download_id: str) -> str:
     """
     Fetch DOI for a GBIF download using pygbif.
     """
-    resp = occurrences.download_get(download_id)
+    resp = occurrences.download_meta(download_id)
 
     doi = resp.get("doi")
     if not doi:
