@@ -132,6 +132,7 @@ $(CLUSTERED_STAGE1_FILE): $(CLUSTER_SCRIPT) $(PREPARED_FILE) $(VENV_SENTINEL)
 		--columns "$(CLUSTER_STAGE1_CLUSTER_COLS)"  \
 		--output_all_records \
 		--batch_col_name "$(CLUSTER_STAGE1_BATCH_COL)" \
+		--additional_col_names "recordedby_team_familynames" \
 		--eligible_flag_columns "eventdate_eligible,recordnumber_eligible,recordedby_eligible" \
 		--cluster_id_col "$(CLUSTER_STAGE1_CLUSTERID_COL)" $(PREPARED_FILE) $@
 

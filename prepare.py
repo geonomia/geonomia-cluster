@@ -6,6 +6,7 @@ import requests
 from time import sleep
 from tqdm import tqdm
 from urllib.parse import quote
+from unidecode import unidecode
 
 # display at least 500 records when printing dataframes
 pd.set_option("display.max_rows", 500)
@@ -367,7 +368,10 @@ def main():
     )
     df_rb["recordedby_families"] = df_rb["recordedby"].map(mapping)
     df_rb["recordedby_first_familyname"] = df_rb["recordedby_families"].apply(
-        lambda x: x.split(";")[0] if pd.notnull(x) else None
+        lambda x: unidecode(x).split(";")[0] if pd.notnull(x) else None
+    )
+    df_rb["recordedby_team_familynames"] = df_rb["recordedby_families"].apply(
+        lambda x: unidecode(x).split(";")[1:] if pd.notnull(x) and len(x.split(";")) > 1 else None
     )
 
     if args.intermediate_output_file:
@@ -377,7 +381,7 @@ def main():
         )
 
     df_occ = df_occ.merge(
-        df_rb[["recordedby", "recordedby_first_familyname", "recordedby_families"]],
+        df_rb[["recordedby", "recordedby_first_familyname", "recordedby_team_familynames"]],
         on="recordedby",
         how="left",
     )
