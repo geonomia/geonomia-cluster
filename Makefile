@@ -151,10 +151,10 @@ CITATION_FILE := data/citation.json
 
 citation: $(CITATION_FILE)
 
-$(CITATION_FILE): $(VENV_SENTINEL)
-	set -e; \
-	DOI=$$(curl -s https://api.gbif.org/v1/occurrence/download/$(GBIF_DOWNLOAD_ID) | jq -r '.doi'); \
-	curl -L -H "Accept: application/vnd.citationstyles.csl+json" "https://doi.org/$$DOI" > $@	
+$(CITATION_FILE): $(VENV_SENTINEL) get_citation.py
+	$(PYTHON) get_citation.py \
+		--download-id "$(GBIF_DOWNLOAD_ID)" \
+		--output "$@"
 
 visualise_stage1: $(SUMMARY_STAGE1_FILE)
 	$(PYTHON) visualise.py $(SUMMARY_STAGE1_FILE)
