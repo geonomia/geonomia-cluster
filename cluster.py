@@ -11,7 +11,7 @@ def do_clustering(df, cluster_cols, eps=20, min_samples=5, id_col_name='gbifid',
     clustering_data = df[[id_col_name] + cluster_cols].dropna()
 
     # Perform DBSCAN clustering
-    dbscan = DBSCAN(eps=eps, min_samples=min_samples)
+    dbscan = DBSCAN(eps=eps, min_samples=min_samples, n_jobs=-1)
     clustering_data[cluster_col_name] = dbscan.fit_predict(clustering_data[cluster_cols])
 
     # join cluster results back to the main dataframe
@@ -96,6 +96,7 @@ def main():
     parser.add_argument('--columns', type=str, required=True, help='Comma separated list of columns to use for clustering (default: eventdate_day_offset,recordnumber_mainnumber)')    
     parser.add_argument('--cluster_id_col', type=str, required=True, default='cluster_num_id', help='Name of the column to store cluster IDs in (default: cluster_num_id)')
     parser.add_argument('--batch_col_name', type=str, required=True, default='recordedby_first_familyname', help='Name of the column to batch by for clustering (default: recordedby_first_family)')    
+    parser.add_argument('--additional_col_names', type=str, required=False, help='Comma separated list of additional column names to include in the output (default: none)')
     parser.add_argument('--eligible_flag_columns', type=str, required=True, default='eventdate_eligible,recordnumber_eligible,recordedby_eligible', help='Comma separated list of columns that must not be null for a record to be eligible for clustering (default: none)')
     parser.add_argument('--temp_file', type=str, required=False, help='Path to temp file to save intermediate results')
     parser.add_argument('--output_all_records', action='store_true', help='Whether to output all records, or only those that were eligible for clustering (i.e. have non-null values for the cols used for clustering) and assigned a cluster label')
@@ -108,7 +109,9 @@ def main():
     print(f'Reading prepared occurrence data from datafile {args.input_file}')
     # Load the occurrence data
     cols = [args.id_col] + args.columns.split(',') + args.eligible_flag_columns.split(',') + [args.batch_col_name]
-    df_occ = pd.read_csv(args.input_file, usecols=cols, sep='\t')
+    if args.additional_col_names:
+        cols += args.additional_col_names.split(',')
+    df_occ = pd.read_csv(args.input_file, usecols=cols, sep='\t', engine='python', on_bad_lines='skip')
     print(f'Loaded occurrence data from {args.input_file} with {len(df_occ)} records')
     print(f'Columns loaded: {df_occ.columns.tolist()}')
 
