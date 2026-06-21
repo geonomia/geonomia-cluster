@@ -158,8 +158,8 @@ $(CITATION_FILE): $(VENV_SENTINEL) get_citation.py
 		--output "$@"
 
 $(OCC_FILE_TSV): $(VENV_SENTINEL) join.py $(OCC_FILE_ZIP) $(CLUSTERED_STAGE1_FILE)
-        mkdir -p $(DATA_DIR)
-        $(PYTHON) join.py $(OCC_FILE_ZIP) $(CLUSTERED_STAGE1_FILE) $@
+	mkdir -p $(DATA_DIR)
+	$(PYTHON) join.py $(OCC_FILE_ZIP) $(CLUSTERED_STAGE1_FILE) $@
 join: $(OCC_FILE_TSV)
 
 visualise_stage1: $(SUMMARY_STAGE1_FILE)
