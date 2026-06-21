@@ -47,13 +47,14 @@ CLUSTERED_STAGE1_FILE := $(DATA_DIR)/occurrences-$(GBIF_DOWNLOAD_COUNTRYCODE)-cl
 SUMMARY_STAGE1_FILE := $(DATA_DIR)/occurrences-$(GBIF_DOWNLOAD_COUNTRYCODE)-clustered-stage1-summary.tsv
 CLUSTERED_STAGE2_FILE := $(DATA_DIR)/occurrences-$(GBIF_DOWNLOAD_COUNTRYCODE)-clustered-stage2.tsv
 SUMMARY_STAGE2_FILE := $(DATA_DIR)/occurrences-$(GBIF_DOWNLOAD_COUNTRYCODE)-clustered-stage2-summary.tsv
-OCC_FILE_TSV := $(DATA_DIR)/occurrences-$(GBIF_DOWNLOAD_COUNTRYCODE).tsv
+JOINED_FILE := $(DATA_DIR)/occurrences-$(GBIF_DOWNLOAD_COUNTRYCODE).tsv
 
 DOWNLOAD_SCRIPT  := request_download.py
 DOWNLOAD_TEMPLATE_FILE = templates/gbif-download.sql
 PREPARE_SCRIPT   := prepare.py
 CLUSTER_SCRIPT   := cluster.py
 SUMMARISE_SCRIPT  := summarise.py
+JOIN_SCRIPT := join.py
 
 # Comma-separated list of columns to read from the GBIF SQL download for the prepare step 
 # MUST include base data for later clustering step:
@@ -157,10 +158,10 @@ $(CITATION_FILE): $(VENV_SENTINEL) get_citation.py
 		--download-id "$(GBIF_DOWNLOAD_ID)" \
 		--output "$@"
 
-$(OCC_FILE_TSV): $(VENV_SENTINEL) join.py $(OCC_FILE_ZIP) $(CLUSTERED_STAGE1_FILE)
+$(JOINED_FILE): $(VENV_SENTINEL) join.py $(OCC_FILE_ZIP) $(CLUSTERED_STAGE1_FILE)
 	mkdir -p $(DATA_DIR)
-	$(PYTHON) join.py $(OCC_FILE_ZIP) $(CLUSTERED_STAGE1_FILE) $@
-join: $(OCC_FILE_TSV)
+	$(PYTHON) $(JOIN_SCRIPT) $(OCC_FILE_ZIP) $(CLUSTERED_STAGE1_FILE) $@
+join: $(JOINED_FILE)
 
 visualise_stage1: $(SUMMARY_STAGE1_FILE)
 	$(PYTHON) visualise.py $(SUMMARY_STAGE1_FILE)
