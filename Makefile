@@ -157,8 +157,9 @@ all: summary_stage1 citation join
 
 deploy: summary_stage1 citation join
 	@echo "Deploying to shared directory $(SHARED_DIR)"
-	mkdir -p $(DATA_DIR_SHARED)
+	mkdir -p $(DOWNLOAD_DIR_SHARED)
 	cp $(DOWNLOADED_FILE) $(DOWNLOAD_DIR_SHARED)
+	mkdir -p $(DATA_DIR_SHARED)
 	cp $(SUMMARY_STAGE1_FILE) $(DATA_DIR_SHARED)
 	cp $(CITATION_FILE) $(DATA_DIR_SHARED)
 	cp $(JOINED_FILE) $(DATA_DIR_SHARED)
