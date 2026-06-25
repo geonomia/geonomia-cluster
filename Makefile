@@ -5,8 +5,14 @@ GBIF_OCCURRENCES_URL_BASE := https://api.gbif.org/v1/occurrence/download/request
 # environment variable to label the download and the prepared and clustered files, 
 # e.g. occurrences-COUNTRYCODE-prepared.tsv
 
-DOWNLOAD_DIR  := downloads
-DATA_DIR      := data
+SHARED_DIR 			?=../geonomia-shared
+
+DOWNLOAD_DIR  		:= downloads
+DOWNLOAD_DIR_SHARED := $(SHARED_DIR)/downloads
+
+DATA_DIR 			:= data
+DATA_DIR_SHARED 	:= $(SHARED_DIR)/data
+
 VENV_DIR      := .venv
 VENV_SENTINEL := $(VENV_DIR)/.installed
 
@@ -149,8 +155,15 @@ summary_stage1: $(SUMMARY_STAGE1_FILE)
 
 all: summary_stage1 citation join
 
-CITATION_FILE := data/citation.json
+deploy: summary_stage1 citation join
+	@echo "Deploying to shared directory $(SHARED_DIR)"
+	mkdir -p $(DATA_DIR_SHARED)
+	cp $(DOWNLOADED_FILE) $(DOWNLOAD_DIR_SHARED)
+	cp $(SUMMARY_STAGE1_FILE) $(DATA_DIR_SHARED)
+	cp $(CITATION_FILE) $(DATA_DIR_SHARED)
+	cp $(JOINED_FILE) $(DATA_DIR_SHARED)
 
+CITATION_FILE := data/citation.json
 citation: $(CITATION_FILE)
 
 $(CITATION_FILE): $(VENV_SENTINEL) get_citation.py
