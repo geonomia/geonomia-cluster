@@ -1,5 +1,6 @@
 import argparse
 import pandas as pd
+from geonomia_dtypes import DATA_SCHEMA
 
 def nullSafeMax():
     def max_func(x):
@@ -28,12 +29,12 @@ def main():
 
     print(f'Reading original occurrence data from datafile {args.input_occ_file}')
     # Load the occurrence data
-    df_occ_orig = pd.read_csv(args.input_occ_file, sep='\t', on_bad_lines='warn')
+    df_occ_orig = pd.read_csv(args.input_occ_file, sep='\t', on_bad_lines='warn', dtype=DATA_SCHEMA)
     print(f'Loaded original occurrence data from {args.input_occ_file} with {len(df_occ_orig)} records')
 
     print(f'Reading prepared occurrence data from datafile {args.input_prepared_file}')
     # Load the occurrence data
-    df_occ_prep = pd.read_csv(args.input_prepared_file, sep='\t')
+    df_occ_prep = pd.read_csv(args.input_prepared_file, sep='\t', dtype=DATA_SCHEMA)
     print(f'Loaded prepared occurrence data from {args.input_prepared_file} with {len(df_occ_prep)} records')
 
     # Join df_occ_orig and df_occ_prep to get all the columns together (using 'gbifid' as the key)

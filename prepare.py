@@ -7,7 +7,7 @@ from time import sleep
 from tqdm import tqdm
 from urllib.parse import quote
 from unidecode import unidecode
-
+from geonomia_dtypes import DATA_SCHEMA
 # display at least 500 records when printing dataframes
 pd.set_option("display.max_rows", 500)
 # set up tqdm for pandas
@@ -237,10 +237,11 @@ def main():
             usecols=col_subset,
             on_bad_lines="skip",
             engine="python",
+            dtype=DATA_SCHEMA
         )
     else:
         df_occ = pd.read_csv(
-            args.input_file, sep="\t", on_bad_lines="skip", engine="python"
+            args.input_file, sep="\t", on_bad_lines="skip", engine="python", dtype=DATA_SCHEMA
         )
     print(f"Loaded occurrence data from {args.input_file} with {len(df_occ)} records")
 
