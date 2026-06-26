@@ -47,7 +47,7 @@ $(VENV_BIN)/dwcagent-server:
 	rm dwc_agent_golang.zip
 	rm -rf dwc_agent_golang
 
-DOWNLOADED_FILE  := $(DOWNLOAD_DIR_SHARED)/occurrences-$(GBIF_DOWNLOAD_COUNTRYCODE).zip
+DOWNLOADED_FILE  := $(DOWNLOAD_DIR)/occurrences-$(GBIF_DOWNLOAD_COUNTRYCODE).zip
 PREPARED_FILE    := $(DATA_DIR)/occurrences-$(GBIF_DOWNLOAD_COUNTRYCODE)-prepared.tsv
 CLUSTERED_STAGE1_FILE := $(DATA_DIR)/occurrences-$(GBIF_DOWNLOAD_COUNTRYCODE)-clustered-stage1.tsv
 SUMMARY_STAGE1_FILE := $(DATA_DIR)/occurrences-$(GBIF_DOWNLOAD_COUNTRYCODE)-clustered-stage1-summary.tsv
