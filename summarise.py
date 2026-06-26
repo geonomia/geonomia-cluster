@@ -29,7 +29,7 @@ def main():
 
     print(f'Reading original occurrence data from datafile {args.input_occ_file}')
     # Load the occurrence data
-    df_occ_orig = pd.read_csv(args.input_occ_file, sep='\t', on_bad_lines='warn', dtype=DATA_SCHEMA)
+    df_occ_orig = pd.read_csv(args.input_occ_file, sep='\t', on_bad_lines='skip', dtype=DATA_SCHEMA)
     print(f'Loaded original occurrence data from {args.input_occ_file} with {len(df_occ_orig)} records')
 
     print(f'Reading prepared occurrence data from datafile {args.input_prepared_file}')
