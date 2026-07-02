@@ -231,14 +231,20 @@ def main():
 
     if col_subset is not None:
         print(f"Final list of columns to read from input file: {col_subset}")
+        # We first read the complete set of columns in the input file as this allows us to
+        # use on_bad_lines="skip" to skip any malformed lines, and then we subset the 
+        # dataframe to only include the specified columns. This avoids issues with 
+        # specifying a subset of columns in read_csv when there are malformed lines 
+        # in the input file. 
         df_occ = pd.read_csv(
             args.input_file,
             sep="\t",
-            usecols=col_subset,
             on_bad_lines="skip",
             engine="python",
             dtype=DATA_SCHEMA
         )
+        # Only keep the columns in col_subset
+        df_occ = df_occ[col_subset]
     else:
         df_occ = pd.read_csv(
             args.input_file, sep="\t", on_bad_lines="skip", engine="python", dtype=DATA_SCHEMA
