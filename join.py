@@ -15,7 +15,7 @@ def main():
 
     args = parser.parse_args()
 
-    df_occ = pd.read_csv(args.occ_file, sep='\t', compression='zip', on_bad_lines="skip", engine='python', dtype=DATA_SCHEMA)
+    df_occ = pd.read_csv(args.occ_file, sep='\t', quotechar=None, compression='zip', on_bad_lines="skip", engine='python', dtype=DATA_SCHEMA)
     print(f"Loaded {len(df_occ)} occurrences from {args.occ_file}")
     print(f"Columns in occurrence file: {df_occ.columns.tolist()}")
     eligibility_columns = [col for col in df_occ.columns if col.endswith('_eligible')]
@@ -24,7 +24,7 @@ def main():
         # Set non-True values to False, to make it easier to work with in sqlite
         df_occ[col] = df_occ[col].map({'True': True}).fillna(False).astype('bool')
     
-    df_occ_clustered = pd.read_csv(args.occ_clustered_file, sep='\t',low_memory=False, dtype=DATA_SCHEMA)
+    df_occ_clustered = pd.read_csv(args.occ_clustered_file, sep='\t', quotechar=None, low_memory=False, dtype=DATA_SCHEMA)
     print(f"Loaded {len(df_occ_clustered)} clustered occurrences from {args.occ_clustered_file}")
     print(f"Columns in clustered file: {df_occ_clustered.columns.tolist()}")
     eligibility_columns = [col for col in df_occ_clustered.columns if col.endswith('_eligible')]

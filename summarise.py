@@ -30,12 +30,12 @@ def main():
     print(f'Reading original occurrence data from datafile {args.input_occ_file}')
     # Load the occurrence data
     
-    df_occ_orig = pd.read_csv(args.input_occ_file, sep='\t', on_bad_lines='skip', engine='python', dtype=DATA_SCHEMA)
+    df_occ_orig = pd.read_csv(args.input_occ_file, sep='\t', quotechar=None, on_bad_lines='skip', engine='python', dtype=DATA_SCHEMA)
     print(f'Loaded original occurrence data from {args.input_occ_file} with {len(df_occ_orig)} records')
 
     print(f'Reading prepared occurrence data from datafile {args.input_prepared_file}')
     # Load the occurrence data
-    df_occ_prep = pd.read_csv(args.input_prepared_file, sep='\t', engine='python', dtype=DATA_SCHEMA)
+    df_occ_prep = pd.read_csv(args.input_prepared_file, sep='\t', quotechar=None, engine='python', dtype=DATA_SCHEMA)
     print(f'Loaded prepared occurrence data from {args.input_prepared_file} with {len(df_occ_prep)} records')
 
     # Join df_occ_orig and df_occ_prep to get all the columns together (using 'gbifid' as the key)
@@ -48,7 +48,7 @@ def main():
     print(df_occ.sample(5).T)
     print(f'Reading clustered occurrence data from datafile {args.input_clustered_file}')
     # Load the clustered occurrence data
-    df_clustered = pd.read_csv(args.input_clustered_file, sep='\t', engine='python')
+    df_clustered = pd.read_csv(args.input_clustered_file, sep='\t', quotechar=None, engine='python')
     print(f'Loaded clustered occurrence data from {args.input_clustered_file} with {len(df_clustered)} records')
 
     # Join the clustered data with the original occurrence data to get all the columns together

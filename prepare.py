@@ -239,6 +239,7 @@ def main():
         df_occ = pd.read_csv(
             args.input_file,
             sep="\t",
+            quotechar=None,
             on_bad_lines="skip",
             engine="python",
             dtype=DATA_SCHEMA
@@ -247,7 +248,7 @@ def main():
         df_occ = df_occ[col_subset]
     else:
         df_occ = pd.read_csv(
-            args.input_file, sep="\t", on_bad_lines="skip", engine="python", dtype=DATA_SCHEMA
+            args.input_file, sep="\t", quotechar=None, on_bad_lines="skip", engine="python", dtype=DATA_SCHEMA
         )
     print(f"Loaded occurrence data from {args.input_file} with {len(df_occ)} records")
 

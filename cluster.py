@@ -112,7 +112,7 @@ def main():
     cols = [args.id_col] + args.columns.split(',') + args.eligible_flag_columns.split(',') + [args.batch_col_name]
     if args.additional_col_names:
         cols += args.additional_col_names.split(',')
-    df_occ = pd.read_csv(args.input_file, usecols=cols, sep='\t', engine='python', on_bad_lines='skip', dtype=DATA_SCHEMA)
+    df_occ = pd.read_csv(args.input_file, usecols=cols, sep='\t', quotechar=None, engine='python', on_bad_lines='skip', dtype=DATA_SCHEMA)
     print(f'Loaded occurrence data from {args.input_file} with {len(df_occ)} records')
     print(f'Columns loaded: {df_occ.columns.tolist()}')
 

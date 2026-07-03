@@ -11,7 +11,7 @@ def main():
 
     print(f'Reading summary data from datafile {args.input_file}')
     # Load the summary data
-    df_summary = pd.read_csv(args.input_file, sep='\t', dtype=DATA_SCHEMA)
+    df_summary = pd.read_csv(args.input_file, sep='\t', quotechar=None, dtype=DATA_SCHEMA)
     print(f'Loaded summary data from {args.input_file} with {len(df_summary)} records')
     print("Columns in summary data:", df_summary.columns.tolist())
     print(df_summary.sample(5).T)
