@@ -3,6 +3,9 @@ import pandas as pd
 from sklearn.cluster import DBSCAN
 from tqdm import tqdm
 from geonomia_dtypes import DATA_SCHEMA
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Display at least 500 records when printing dataframes
 pd.set_option('display.max_rows', 500)
@@ -36,11 +39,11 @@ def do_batched_clustering(df, cluster_cols, eps=20, min_samples=5, id_col_name='
     # to ensure that we are doing the most efficient clustering first 
     # (i.e. clustering the largest batches first)
     batches = clustering_data[batch_col_name].value_counts()
-    print(batches)
+    logger.debug("Generated batches:", batches)
     # Only use the batches that are above the min_samples threshold, as smaller batches won't produce any clusters and can be skipped
     batches = batches[batches >= min_samples] 
     batch_values = batches.index.tolist()
-    print(f'Clustering will be performed in {len(batch_values)} batches based on {batch_col_name} values that have at least {min_samples} records.')
+    logger.info(f'Clustering will be performed in {len(batch_values)} batches based on {batch_col_name} values that have at least {min_samples} records.')
 
     cluster_id_offset = 0
     mode = 'w'
@@ -102,29 +105,30 @@ def main():
     parser.add_argument('--temp_file', type=str, required=False, help='Path to temp file to save intermediate results')
     parser.add_argument('--output_all_records', action='store_true', help='Whether to output all records, or only those that were eligible for clustering (i.e. have non-null values for the cols used for clustering) and assigned a cluster label')
     parser.add_argument('output_file', type=str, help='Path to the outputfile CSV file')
-
+    parser.add_argument('--logging_level', type=str, default='INFO', help='Logging level (default: INFO)')
     args = parser.parse_args()
 
-    print(args)
+    logging.getLogger().setLevel(getattr(logging, args.logging_level.upper()))
+    logger.info(args)
 
-    print(f'Reading prepared occurrence data from datafile {args.input_file}')
+    logger.info(f'Reading prepared occurrence data from datafile {args.input_file}')
     # Load the occurrence data
     cols = [args.id_col] + args.columns.split(',') + args.eligible_flag_columns.split(',') + [args.batch_col_name]
     if args.additional_col_names:
         cols += args.additional_col_names.split(',')
-    df_occ = pd.read_csv(args.input_file, usecols=cols, sep='\t', quotechar=None, engine='python', on_bad_lines='skip', dtype=DATA_SCHEMA)
-    print(f'Loaded occurrence data from {args.input_file} with {len(df_occ)} records')
-    print(f'Columns loaded: {df_occ.columns.tolist()}')
+    df_occ = pd.read_csv(args.input_file, usecols=cols, sep='\t', engine='python', on_bad_lines='skip', dtype=DATA_SCHEMA)
+    logger.info(f'Loaded occurrence data from {args.input_file} with {len(df_occ)} records')
+    logger.info(f'Columns loaded: {df_occ.columns.tolist()}')
 
-    print(df_occ.recordedby_first_familyname.value_counts().head(20))
+    logger.debug(df_occ.recordedby_first_familyname.value_counts().head(20))
 
     # Show breakdown of the flags used for cluster eligibility
-    print(df_occ.dtypes)
-    print(df_occ.groupby(args.eligible_flag_columns.split(',')).size())
+    logger.info(df_occ.dtypes)
+    logger.info(df_occ.groupby(args.eligible_flag_columns.split(',')).size())
     
     # Display sample of occurrence data
-    print(df_occ.head())
-    print(df_occ.sample(n=1).T)
+    logger.debug(df_occ.head())
+    logger.debug(df_occ.sample(n=1).T)
 
     # Use density based clustering (e.g. DBSCAN) to identify clusters of 
     # records in the eventDate_offset vs recordNumber_mainNumber space, 
@@ -139,12 +143,12 @@ def main():
                                    intermediate_file=args.temp_file)
 
     if args.output_all_records:
-        print(f'Outputting all {len(df_occ)} records with cluster labels to {args.output_file}')
+        logger.info(f'Outputting all {len(df_occ)} records with cluster labels to {args.output_file}')
         df_occ.to_csv(args.output_file, sep='\t', index=False)
     else:
         # Output only data with cluster labels to a new CSV file for further analysis
         mask = df_occ[args.cluster_id_col].notnull()
-        print(f'Outputting {df_occ[mask].shape[0]} records to {args.output_file}')
+        logger.info(f'Outputting {df_occ[mask].shape[0]} records to {args.output_file}')
         df_occ[mask].to_csv(args.output_file, sep='\t', index=False)
 
 if __name__ == '__main__':

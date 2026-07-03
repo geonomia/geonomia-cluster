@@ -2,20 +2,32 @@ import argparse
 import os
 from jinja2 import Template
 from pygbif import occurrences as occ
+import logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 def main():
     parser = argparse.ArgumentParser(description='Request a download of occurrence data from GBIF')
     parser.add_argument('query_template_file', type=str, help='Path to the query template file (a text file containing the query template with placeholders for parameters)')
     parser.add_argument('--countrycodes', type=str, help='Comma-separated list of country codes for the download (e.g. "CO,PE,EC)")')
     parser.add_argument('--phylum_key', type=int, required=False, default=7707728, help='The key of the phylum to download (e.g. "Tracheophyta" is 7707728)')
+    parser.add_argument('--logging_level', type=str, default='INFO', help='Logging level (default: INFO)')
+    
     args = parser.parse_args()
+    logging.getLogger().setLevel(getattr(logging, args.logging_level.upper()))
+
+    logger.info("Called request_download.py with arguments:")
+    for arg, value in vars(args).items():
+        logger.info(f"  {arg}: {value}")
+
+    logger.info(f'Reading query template from file {args.query_template_file}')
 
     # Load the SQL template
     with open(args.query_template_file, 'r') as f:
         template_str = f.read()
 
     country_code_l = args.countrycodes.split(',') if ',' in args.countrycodes else [args.countrycodes]
-    print(country_code_l)
+    logger.info(f"Country codes: {country_code_l}")
 
     # Create the template object and render
     template = Template(template_str)
@@ -33,7 +45,7 @@ def main():
         format='SQL_TSV_ZIP'
     )
 
-    print(f'Download requested with key {download_request_id}. Check GBIF download page for status: https://www.gbif.org/downloads/{download_request_id}')
+    logger.info(f'Download requested with key {download_request_id}. Check GBIF download page for status: https://www.gbif.org/downloads/{download_request_id}')
     os.environ['GBIF_DOWNLOAD_ID'] = download_request_id
 
 if __name__ == "__main__":

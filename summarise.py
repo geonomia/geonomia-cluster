@@ -1,6 +1,9 @@
 import argparse
 import pandas as pd
 from geonomia_dtypes import DATA_SCHEMA
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def nullSafeMax():
     def max_func(x):
@@ -27,35 +30,35 @@ def main():
     parser.add_argument('output_file', type=str, help='Path to the output CSV file to save cluster metadata')
     args = parser.parse_args()
 
-    print(f'Reading original occurrence data from datafile {args.input_occ_file}')
+    logger.info(f'Reading original occurrence data from datafile {args.input_occ_file}')
     # Load the occurrence data
     
-    df_occ_orig = pd.read_csv(args.input_occ_file, sep='\t', quotechar=None, on_bad_lines='skip', engine='python', dtype=DATA_SCHEMA)
-    print(f'Loaded original occurrence data from {args.input_occ_file} with {len(df_occ_orig)} records')
+    df_occ_orig = pd.read_csv(args.input_occ_file, sep='\t', on_bad_lines='skip', engine='python', dtype=DATA_SCHEMA)
+    logger.info(f'Loaded original occurrence data from {args.input_occ_file} with {len(df_occ_orig)} records')
 
-    print(f'Reading prepared occurrence data from datafile {args.input_prepared_file}')
+    logger.info(f'Reading prepared occurrence data from datafile {args.input_prepared_file}')
     # Load the occurrence data
-    df_occ_prep = pd.read_csv(args.input_prepared_file, sep='\t', quotechar=None, engine='python', dtype=DATA_SCHEMA)
-    print(f'Loaded prepared occurrence data from {args.input_prepared_file} with {len(df_occ_prep)} records')
+    df_occ_prep = pd.read_csv(args.input_prepared_file, sep='\t', engine='python', dtype=DATA_SCHEMA)
+    logger.info(f'Loaded prepared occurrence data from {args.input_prepared_file} with {len(df_occ_prep)} records')
 
     # Join df_occ_orig and df_occ_prep to get all the columns together (using 'gbifid' as the key)
     # Only take columns from df_occ_orig that are not in df_occ_prep to avoid duplicates
     cols_to_merge = [col for col in df_occ_orig.columns if col not in df_occ_prep.columns or col == 'gbifid']
     df_occ = df_occ_prep.merge(df_occ_orig[cols_to_merge], on='gbifid', how='left')
-    print(f'Merged original and prepared occurrence data to get {len(df_occ)} records with all columns')
+    logger.info(f'Merged original and prepared occurrence data to get {len(df_occ)} records with all columns')
 
-    print("Columns in merged occurrence data:", df_occ.columns.tolist())
-    print(df_occ.sample(5).T)
-    print(f'Reading clustered occurrence data from datafile {args.input_clustered_file}')
+    logger.info("Columns in merged occurrence data:", df_occ.columns.tolist())
+    logger.debug(df_occ.sample(5).T)
+    logger.info(f'Reading clustered occurrence data from datafile {args.input_clustered_file}')
     # Load the clustered occurrence data
-    df_clustered = pd.read_csv(args.input_clustered_file, sep='\t', quotechar=None, engine='python')
-    print(f'Loaded clustered occurrence data from {args.input_clustered_file} with {len(df_clustered)} records')
+    df_clustered = pd.read_csv(args.input_clustered_file, sep='\t', engine='python')
+    logger.info(f'Loaded clustered occurrence data from {args.input_clustered_file} with {len(df_clustered)} records')
 
     # Join the clustered data with the original occurrence data to get all the columns together
     df_merged = df_clustered[['gbifid',args.cluster_id_col]].merge(df_occ, on='gbifid', how='left')
 
-    print("Columns in merged occurrence data:", df_merged.columns.tolist())
-    print(df_merged.sample(5).T)
+    logger.info("Columns in merged occurrence data:", df_merged.columns.tolist())
+    logger.debug(df_merged.sample(5).T)
 
     # Drop noise records (those with cluster ID -1)
     df_merged = df_merged[df_merged[args.cluster_id_col] != -1]
@@ -87,6 +90,7 @@ def main():
     cluster_metadata['year_max'] = cluster_metadata['year_max'].astype('Int64')
 
     # Save the cluster metadata to a CSV file
+    logger.info(f'Saving {len(cluster_metadata)} lines of cluster metadata to {args.output_file}')
     cluster_metadata.to_csv(args.output_file, index=False, sep='\t')
     
 if __name__ == '__main__':

@@ -8,11 +8,14 @@ from tqdm import tqdm
 from urllib.parse import quote
 from unidecode import unidecode
 from geonomia_dtypes import DATA_SCHEMA
-# display at least 500 records when printing dataframes
+import logging
+# display at least 500 records when outputting dataframes
 pd.set_option("display.max_rows", 500)
 # set up tqdm for pandas
 tqdm.pandas()
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def date2offset(date_str, unit="days"):
     """
@@ -32,7 +35,7 @@ def date2offset(date_str, unit="days"):
             offset = (date - epoch).days
         return offset
     except Exception as e:
-        print(f"Error parsing date '{date_str}': {e}")
+        logger.error(f"Error parsing date '{date_str}': {e}")
         return None
 
 
@@ -131,13 +134,13 @@ def buildRecordedBy2FamilyNameMap(recordedby_l, use_local_recordedby_parse=False
 
     mapping = {}
     result = response.json()
-    # print(f'API returned {len(result)} parsed names')
+    logger.debug(f'API returned {len(result)} parsed names')
     if len(result) != len(recordedby_l):
-        print(
+        logger.warning(
             f"Warning: number of parsed results ({len(result)}) does not match number of input names ({len(recordedby_l)})"
         )
     for item in result:
-        # print(item)
+        # logger.debug(f'Processing item: {item}')
         original = item[original_key_name]
         try:
             families = [item["parsed"][i]["family"] for i in range(len(item["parsed"]))]
@@ -195,9 +198,17 @@ def main():
         type=str,
         help="Path to the output CSV file where the prepared data will be saved",
     )
+    parser.add_argument(
+        "--log_level",
+        type=str,
+        default="INFO",
+        help="Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
+    )
     args = parser.parse_args()
 
-    print(f"Reading occurrence data from datafile {args.input_file}")
+    logging.getLogger().setLevel(getattr(logging, args.log_level.upper()))
+
+    logger.info(f"Reading occurrence data from datafile {args.input_file}")
     # First read actual cols
     cols_actual = pd.read_csv(args.input_file, sep="\t", nrows=0).columns
 
@@ -212,7 +223,7 @@ def main():
                     f'Required column "{col}" not found in input file. Actual columns are: {cols_actual}'
                 )
                 exit(1)
-        print(f"Only including specified columns: {cols_req}")
+        logger.info(f"Only including specified columns: {cols_req}")
         col_subset = cols_req
 
     if args.columns_optional:
@@ -221,16 +232,16 @@ def main():
         for col in cols_opt:
             if col not in cols_actual:
                 # Just print warning as these can be computed locally if not present in input file
-                print(
+                logger.warning(
                     f'Optional column "{col}" not found in input file. Actual columns are: {cols_actual}'
                 )
         col_subset = (
             cols_opt if col_subset is None else list(set(col_subset) | set(cols_opt))
         )
-        print(f"Including optional columns: {cols_opt}")
+        logger.info(f"Including optional columns: {cols_opt}")
 
     if col_subset is not None:
-        print(f"Final list of columns to read from input file: {col_subset}")
+        logger.info(f"Final list of columns to read from input file: {col_subset}")
         # We first read the complete set of columns in the input file as this allows us to
         # use on_bad_lines="skip" to skip any malformed lines, and then we subset the 
         # dataframe to only include the specified columns. This avoids issues with 
@@ -239,7 +250,6 @@ def main():
         df_occ = pd.read_csv(
             args.input_file,
             sep="\t",
-            quotechar=None,
             on_bad_lines="skip",
             engine="python",
             dtype=DATA_SCHEMA
@@ -248,13 +258,13 @@ def main():
         df_occ = df_occ[col_subset]
     else:
         df_occ = pd.read_csv(
-            args.input_file, sep="\t", quotechar=None, on_bad_lines="skip", engine="python", dtype=DATA_SCHEMA
+            args.input_file, sep="\t", on_bad_lines="skip", engine="python", dtype=DATA_SCHEMA
         )
-    print(f"Loaded occurrence data from {args.input_file} with {len(df_occ)} records")
+    logger.info(f"Loaded occurrence data from {args.input_file} with {len(df_occ)} records")
 
     # Display sample of occurrence data
-    print(df_occ.head())
-    print(df_occ.sample(n=1).T)
+    logger.debug(df_occ.head())
+    logger.debug(df_occ.sample(n=1).T)
 
     ###########################################################################
     # recordNumber
@@ -262,7 +272,7 @@ def main():
 
     if "recordnumber_contains_numerals" not in df_occ.columns:
         mask = df_occ["recordnumber"].notnull()
-        print(
+        logger.info(
             "Adding column recordnumber_contains_numerals to indicate whether recordnumber contains any numerals"
         )
         df_occ.loc[mask, "recordnumber_contains_numerals"] = df_occ.loc[
@@ -285,14 +295,14 @@ def main():
             mask, "recordnumber"
         ].apply(lambda x: parse_record_number(x).get(col))
 
-    print(
+    logger.info(
         f"Parsed recordnumber into components for {mask.sum()} records where recordnumber contains numerals"
     )
 
     # Set up a null-safe mask to gather rows where recordnumber_contains_year is True, and display a sample of the recordnumber, year, and the parsed components for those rows, to understand how often the year is included in the recordnumber and in what format
     mask = df_occ["recordnumber_contains_year"].fillna(False)
     mask_count = mask.sum()
-    print(
+    logger.debug(
         df_occ[mask][
             [
                 "recordnumber",
@@ -306,8 +316,8 @@ def main():
             ]
         ].sample(min(250, mask_count))
     )
-    # print('Most frequently occurring recordnumber mainnumber values:')
-    # print(df_occ.recordnumber_mainnumber.value_counts().head(20))
+    # logger.debug('Most frequently occurring recordnumber mainnumber values:')
+    # logger.debug(df_occ.recordnumber_mainnumber.value_counts().head(20))
 
     ###########################################################################
     # eventDate
@@ -328,14 +338,14 @@ def main():
         # for date_offset_unit in ['quarters','days','months']:
         for date_offset_unit in ["day"]:
             eventdate_offset_mapping = {}
-            print(
+            logger.info(
                 f"Mapping of unique eventdate values to offsets ({date_offset_unit}):"
             )
             for date in eventdate_uniq:
                 offset = date2offset(date, unit=date_offset_unit)
                 eventdate_offset_mapping[date] = offset
             if args.verbose:
-                print(
+                logger.info(
                     f"... generated {len(eventdate_offset_mapping)} unique eventdate offsets"
                 )
             # Apply mapping to the eventDate column in main dataframe, creating a new column eventDate_offset_[unit]]
@@ -343,7 +353,7 @@ def main():
                 eventdate_offset_mapping
             )
 
-    print(
+    logger.info(
         f"eventdate_offset available for {df_occ['eventdate_day_offset'].notnull().sum()} records"
     )
 
@@ -365,13 +375,13 @@ def main():
         chunk_mapping = buildRecordedBy2FamilyNameMap(
             chunk, use_local_recordedby_parse=args.use_local_recordedby_parse
         )
-        # print(f'Generated mapping for chunk with {len(chunk_mapping)} recordedby values')
+        # logger.debug(f'Generated mapping for chunk with {len(chunk_mapping)} recordedby values')
         mapping.update(chunk_mapping)
 
     if args.recordedby_mapping_output_file:
         json.dump(mapping, open(args.recordedby_mapping_output_file, "w"), indent=2)
 
-    print(
+    logger.info(
         f"Generated mapping of recordedby to recordedby_families for {len(mapping)} unique recordedby values"
     )
     df_rb["recordedby_families"] = df_rb["recordedby"].map(mapping)
@@ -384,7 +394,7 @@ def main():
 
     if args.intermediate_output_file:
         df_rb.to_csv(args.intermediate_output_file, sep="\t", index=False)
-        print(
+        logger.info(
             f"{len(df_rb)} lines of intermediate data on recordedby parsing saved to {args.intermediate_output_file}"
         )
 
@@ -394,7 +404,7 @@ def main():
         how="left",
     )
 
-    print(df_occ.recordedby_first_familyname.value_counts().head(20))
+    logger.debug(df_occ.recordedby_first_familyname.value_counts().head(20))
 
     ###########################################################################
     # Add flags to define eligibility
@@ -409,12 +419,12 @@ def main():
         ("recordedby_eligible", "recordedby_first_familyname")
     ]:
         df_occ[eligibility_col] = df_occ[source_col].notnull()
-        print(f"Distribution of {eligibility_col}:")
-        print(df_occ[eligibility_col].value_counts())
+        logger.info(f"Distribution of {eligibility_col}:")
+        logger.info(df_occ[eligibility_col].value_counts())
 
     # group by the eligible flags and count the number of records in each group, to understand how many records are eligible for clustering and how many are being excluded due to missing values in the key columns
-    print("Breakdown of records by eligibility for clustering based on missing values in key columns:")
-    print(
+    logger.info("Breakdown of records by eligibility for clustering based on missing values in key columns:")
+    logger.info(
         df_occ.groupby(
             ["eventdate_eligible", "recordnumber_eligible", "recordedby_eligible"]
         )
@@ -422,22 +432,22 @@ def main():
         .reset_index(name="count")
     )
     # Show the most frequently occurring recordedby values for those where recordedby_eligible is False, to understand which collectors are being excluded from the clustering and why
-    print(
+    logger.debug(
         "Most frequently occurring recordedby values for those where recordedby_eligible is False:"
     )
-    print(df_occ[~df_occ["recordedby_eligible"]]["recordedby"].value_counts().head(200))
+    logger.debug(df_occ[~df_occ["recordedby_eligible"]]["recordedby"].value_counts().head(200))
 
-    print(
+    logger.debug(
         "Most frequently occurring recordedby values for those where recordnumber_eligible is False:"
     )
-    print(
+    logger.debug(
         df_occ[~df_occ["recordnumber_eligible"]]["recordedby"].value_counts().head(200)
     )
 
-    print(
+    logger.debug(
         "Most frequently occurring recordnumber values for those where recordnumber_eligible is False:"
     )
-    print(
+    logger.debug(
         df_occ[~df_occ["recordnumber_eligible"]]["recordnumber"]
         .value_counts()
         .head(200)
@@ -446,7 +456,7 @@ def main():
     # Save augmented data ready for clustering
     # # Save the merged dataframe to a new CSV file
     df_occ.to_csv(args.output_file, sep="\t", index=False)
-    print(f"{len(df_occ)} lines of prepared data saved to {args.output_file}")
+    logger.info(f"{len(df_occ)} lines of prepared data saved to {args.output_file}")
 
 
 def removeBracketedText(s):
@@ -540,7 +550,7 @@ def local_parse(s, output="familyname"):
                 else:
                     return elems[0]
         else:
-            print(f"local_parse failed for {s}")
+            logger.warning(f"local_parse failed for {s}")
     return None
 
 

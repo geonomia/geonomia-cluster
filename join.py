@@ -1,6 +1,9 @@
 import argparse
+import logging
 import pandas as pd
 from geonomia_dtypes import DATA_SCHEMA
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def main():
     parser = argparse.ArgumentParser(description="Join original occurrence download and output of clustering process to create a labelled occurrence data file suitable for insert into sqlite")
@@ -12,29 +15,36 @@ def main():
     parser.add_argument("--recordnumber_col_name", default="recordnumber_mainnumber", help="Name of the column containing the recordnumber in occ_clustered file (default: 'recordnumber_mainnumber')")
     parser.add_argument("--eventdate_col_name", default="eventdate", help="Name of the column containing the eventdate in occ_clustered file (default: 'eventdate')")
     parser.add_argument("--hascoordinate_col_name", default="hascoordinate", help="Name of the column containing the hascoordinate flag in occ_clustered file (default: 'hascoordinate')")
+    parser.add_argument("--convert_bool_cols", action="store_true", help="Whether to convert boolean columns to integer (1 for True, 0 for False) in the output file (default: False)")
+    parser.add_argument("--logging_level", default="INFO", help="Logging level (default: INFO)")
 
     args = parser.parse_args()
+    logger.setLevel(getattr(logging, args.logging_level.upper()))
 
-    df_occ = pd.read_csv(args.occ_file, sep='\t', quotechar=None, compression='zip', on_bad_lines="skip", engine='python', dtype=DATA_SCHEMA)
-    print(f"Loaded {len(df_occ)} occurrences from {args.occ_file}")
-    print(f"Columns in occurrence file: {df_occ.columns.tolist()}")
+    logger.info("Called join.py with arguments:")
+    for arg, value in vars(args).items():
+        logger.info(f"  {arg}: {value}")
+    logger.info(f"Reading occurrence data from {args.occ_file} and clustered data from {args.occ_clustered_file} to create joined output in {args.output_file}")
+    df_occ = pd.read_csv(args.occ_file, sep='\t', compression='zip', on_bad_lines="skip", engine='python', dtype=DATA_SCHEMA)
+    logger.info(f"Loaded {len(df_occ)} occurrences from {args.occ_file}")
+    logger.info(f"Columns in occurrence file: {df_occ.columns.tolist()}")
     eligibility_columns = [col for col in df_occ.columns if col.endswith('_eligible')]
-    print(f"Eligibility columns in occ file: {eligibility_columns}")
+    logger.info(f"Eligibility columns in occ file: {eligibility_columns}")
     for col in eligibility_columns:
         # Set non-True values to False, to make it easier to work with in sqlite
         df_occ[col] = df_occ[col].map({'True': True}).fillna(False).astype('bool')
     
-    df_occ_clustered = pd.read_csv(args.occ_clustered_file, sep='\t', quotechar=None, low_memory=False, dtype=DATA_SCHEMA)
-    print(f"Loaded {len(df_occ_clustered)} clustered occurrences from {args.occ_clustered_file}")
-    print(f"Columns in clustered file: {df_occ_clustered.columns.tolist()}")
+    df_occ_clustered = pd.read_csv(args.occ_clustered_file, sep='\t', low_memory=False, dtype=DATA_SCHEMA)
+    logger.info(f"Loaded {len(df_occ_clustered)} clustered occurrences from {args.occ_clustered_file}")
+    logger.info(f"Columns in clustered file: {df_occ_clustered.columns.tolist()}")
     eligibility_columns = [col for col in df_occ_clustered.columns if col.endswith('_eligible')]
-    print(f"Eligibility columns in clustered file: {eligibility_columns}")
+    logger.info(f"Eligibility columns in clustered file: {eligibility_columns}")
     for col in eligibility_columns:
         # Set non-True values to False, to make it easier to work with in sqlite
         #  df_occ_clustered[col] = df_occ_clustered[col].map({'True': True}).fillna(False).astype('bool')
-        print(f"Distribution of values in column {col}:\n {df_occ_clustered[col].value_counts(dropna=False)}")
+        logger.info(f"Distribution of values in column {col}:\n {df_occ_clustered[col].value_counts(dropna=False)}")
 
-    print(df_occ_clustered.groupby(eligibility_columns).size().reset_index(name='count').sort_values('count', ascending=False))
+    logger.info(df_occ_clustered.groupby(eligibility_columns).size().reset_index(name='count').sort_values('count', ascending=False))
     
     # We don't want to do a full join as the clustered file is a subset of the 
     # original, so we inspect the columns in the clustered file and only carry 
@@ -42,43 +52,44 @@ def main():
     # for the original data
     # We also need the id column in the clustered file to do the join, so we include that too
     columns_to_add = [args.id_col_name] + [col for col in df_occ_clustered.columns if col not in df_occ.columns]
-    print(f"Columns to add from clustered file: {columns_to_add}")
+    logger.info(f"Columns to add from clustered file: {columns_to_add}")
 
     # Join the clustered data with the original data
     df_joined = df_occ.merge(df_occ_clustered[columns_to_add], left_on=args.id_col_name, right_on=args.id_col_name, how='left')
-    print(f"Joined data has {len(df_joined)} rows and {len(df_joined.columns)} columns")
-    print(f"Columns in joined data: {df_joined.columns.tolist()}")
-    print(f"Sample joined data:\n {df_joined.head()}")
+    logger.info(f"Joined data has {len(df_joined)} rows and {len(df_joined.columns)} columns")
+    logger.info(f"Columns in joined data: {df_joined.columns.tolist()}")
+    logger.debug(f"Sample joined data:\n {df_joined.head()}")
     
     # Modify eligibility columns
-    print("Inspecting eligibility columns:")
+    logger.info("Inspecting eligibility columns:")
     for col in eligibility_columns:
-        print(f"distribution of values in column {col}:\n {df_joined[col].value_counts(dropna=False)}")
-        # print(f"pre-conversion distribution of values in column {col}:\n {df_joined[col].value_counts(dropna=False)}")
+        logger.info(f"distribution of values in column {col}:\n {df_joined[col].value_counts(dropna=False)}")
+        # logger.info(f"pre-conversion distribution of values in column {col}:\n {df_joined[col].value_counts(dropna=False)}")
         # df_joined[col] = df_joined[col].map({'True': True, 'False': False}).astype(pd.BooleanDtype())
-        # print(f"post-conversion distribution of values in column {col}:\n {df_joined[col].value_counts(dropna=False)}")
+        # logger.info(f"post-conversion distribution of values in column {col}:\n {df_joined[col].value_counts(dropna=False)}")
 
-    # Modify boolean columns to be 1 for True and 0 for False, to make it easier to work with in sqlite
-    print(df_joined.dtypes)
-    bool_cols = df_joined.select_dtypes(include=['bool','boolean']).columns
-    print(f"Boolean columns to convert: {bool_cols}")
-    for col in bool_cols:
-        print(f"Converting column {col} to integer")
-        print(f"pre-conversion distribution of values in column {col}:\n {df_joined[col].value_counts(dropna=False)}")
-        df_joined[col] = df_joined[col].map({True: 1, False: 0}).astype('Int64')
-        print(f"post-conversion distribution of values in column {col}:\n {df_joined[col].value_counts(dropna=False)}")
-    # df_joined[bool_cols] = df_joined[bool_cols].astype(int)
-    if args.hascoordinate_col_name not in bool_cols:
-        df_joined[args.hascoordinate_col_name] = df_joined[args.hascoordinate_col_name].map({'true': 1, 'false': 0}).astype('Int64')
-        print(f"post-conversion distribution of values in column {args.hascoordinate_col_name}:\n {df_joined[args.hascoordinate_col_name].value_counts(dropna=False)}")
-        # print(f"Warning: hascoordinate column '{args.hascoordinate_col_name}' is not boolean in the joined data, it will not be converted to integer. Please check the column name and the data types in the original and clustered files.")
+    if args.convert_bool_cols:
+        # Modify boolean columns to be 1 for True and 0 for False, to make it easier to work with in sqlite
+        logger.info(f"Data types in joined data:\n {df_joined.dtypes}")
+        bool_cols = df_joined.select_dtypes(include=['bool','boolean']).columns
+        logger.info(f"Boolean columns to convert: {bool_cols}")
+        for col in bool_cols:
+            logger.info(f"Converting column {col} to integer")
+            logger.info(f"pre-conversion distribution of values in column {col}:\n {df_joined[col].value_counts(dropna=False)}")
+            df_joined[col] = df_joined[col].map({True: 1, False: 0}).astype('Int64')
+            logger.info(f"post-conversion distribution of values in column {col}:\n {df_joined[col].value_counts(dropna=False)}")
+        # df_joined[bool_cols] = df_joined[bool_cols].astype(int)
+        if args.hascoordinate_col_name not in bool_cols:
+            df_joined[args.hascoordinate_col_name] = df_joined[args.hascoordinate_col_name].map({'true': 1, 'false': 0}).astype('Int64')
+            logger.info(f"post-conversion distribution of values in column {args.hascoordinate_col_name}:\n {df_joined[args.hascoordinate_col_name].value_counts(dropna=False)}")
+            # logger.info(f"Warning: hascoordinate column '{args.hascoordinate_col_name}' is not boolean in the joined data, it will not be converted to integer. Please check the column name and the data types in the original and clustered files.")
 
     # Display group by eligibility_columns to check the distribution of eligible vs ineligible occurrences
     for col in eligibility_columns:
-        print(df_joined[col].describe())
+        logger.info(df_joined[col].describe())
 
-    print("Distribution of eligible vs ineligible occurrences:")
-    print(df_joined.groupby(eligibility_columns).size().reset_index(name='count'))
+    logger.info("Distribution of eligible vs ineligible occurrences:")
+    logger.info(df_joined.groupby(eligibility_columns).size().reset_index(name='count'))
 
     # Add details for where each record could receive coordinates
     # Options are: 
@@ -115,7 +126,7 @@ def main():
         # update any nulls to 0, as the absence of evidence for coordinates from any source is evidence of absence of coordinates from that source
         df_joined[col] = df_joined[col].fillna(0).astype('Int64')
 
-    print(df_joined.groupby(['coordinate_source_specimen_metadata', 'coordinate_source_collecting_event', 'coordinate_source_collector_day']).size().reset_index(name='count'))
+    logger.info(df_joined.groupby(['coordinate_source_specimen_metadata', 'coordinate_source_collecting_event', 'coordinate_source_collector_day']).size().reset_index(name='count'))
     
     # Build a single column for coordinate source, with values "specimen_metadata", "collecting_event", "collector_day", or "none"
     def determine_coordinate_source(row):
@@ -130,8 +141,8 @@ def main():
 
     df_joined['coordinate_source'] = df_joined.apply(determine_coordinate_source, axis=1)
     # Display the distribution of coordinate sources
-    print("Distribution of coordinate sources:")
-    print(df_joined['coordinate_source'].value_counts(dropna=False))
+    logger.info("Distribution of coordinate sources:")
+    logger.info(df_joined['coordinate_source'].value_counts(dropna=False))
 
     # Save the joined data to a new TSV file
     df_joined.to_csv(args.output_file, sep='\t', index=False)

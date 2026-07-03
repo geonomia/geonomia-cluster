@@ -3,18 +3,25 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from geonomia_dtypes import DATA_SCHEMA
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def main():
     parser = argparse.ArgumentParser(description='Visualise summary data about clusters')
     parser.add_argument('input_file', type=str, help='Path to the input summary file')
+    parser.add_argument('--logging_level', type=str, default='INFO', help='Logging level (default: INFO)')
     args = parser.parse_args()
+    logging.getLogger().setLevel(getattr(logging, args.logging_level.upper()))
 
-    print(f'Reading summary data from datafile {args.input_file}')
+    logger.info(f'Called visualise.py with arguments: {args}')
+
+    logger.info(f'Reading summary data from datafile {args.input_file}')
     # Load the summary data
     df_summary = pd.read_csv(args.input_file, sep='\t', quotechar=None, dtype=DATA_SCHEMA)
-    print(f'Loaded summary data from {args.input_file} with {len(df_summary)} records')
-    print("Columns in summary data:", df_summary.columns.tolist())
-    print(df_summary.sample(5).T)
+    logger.info(f'Loaded summary data from {args.input_file} with {len(df_summary)} records')
+    logger.info(f"Columns in summary data: {df_summary.columns.tolist()}")
+    logger.debug(f"Sample data:\n{df_summary.sample(5).T}")
 
     # cluster_stage1_id,num_records,recordedby_unique,recordnumber_unique,eventdate_unique,eventdate_day_offset_min,eventdate_day_offset_max,countrycode_unique,duration_days,hascoordinate_count,hascoordinate_pct,days_active_pct
     
