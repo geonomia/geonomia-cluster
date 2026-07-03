@@ -15,7 +15,7 @@ DATA_SCHEMA = {
     # 'georeferenceverificationstatus': 'str',
     # 'othercatalognumbers': 'str',
     # 'fieldnumber': 'str',
-    # 'fieldnumber_contains_numerals': 'bool',
+    'fieldnumber_contains_numerals': 'bool',
     # 'eventdate': 'str',
     # 'eventdate_day_offset': "Int64",
     # 'year': "Int64",
@@ -72,5 +72,4 @@ DATA_SCHEMA = {
     # 'collecting_areas':'str',
     # 'placenames':'str',
     # 'regional_units':'str',
-
     }
