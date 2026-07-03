@@ -118,14 +118,10 @@ $(PREPARED_FILE): $(PREPARE_SCRIPT) $(DOWNLOADED_FILE) $(VENV_SENTINEL) $(DWC_AG
 		trap 'kill $$SERVER_PID 2>/dev/null || true; wait $$SERVER_PID 2>/dev/null || true' EXIT; \
 		curl --fail --retry 20 --retry-delay 1 --retry-connrefused "http://127.0.0.1:7654/health"; \
 		$(PYTHON) $(PREPARE_SCRIPT) \
-			--columns_required $(PREPARE_COLS_REQD),$(GEOSPATIAL_COLS) \
-			--columns_optional $(PREPARE_COLS_HELPER) \
 			$(USE_LOCAL_RECORDEDBY_PARSE_ARGS) \
 			$(DOWNLOADED_FILE) $@; \
 	else \
 		$(PYTHON) $(PREPARE_SCRIPT) \
-			--columns_required $(PREPARE_COLS_REQD),$(GEOSPATIAL_COLS) \
-			--columns_optional $(PREPARE_COLS_HELPER) \
 			$(DOWNLOADED_FILE) $@; \
 	fi
 

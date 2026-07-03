@@ -161,22 +161,6 @@ def main():
         "input_file", type=str, help="Path to the occurrence data CSV file"
     )
     parser.add_argument(
-        "--columns_required",
-        type=str,
-        default="",
-        help="Comma-separated list of columns to include in the output file (if not specified, all columns will be included)",
-    )
-    parser.add_argument(
-        "--columns_optional",
-        type=str,
-        default="",
-        help="Comma-separated list of columns to read from the input file (if not specified, all columns will be read)",
-    )
-    # Add verbosity flag, default to False
-    parser.add_argument(
-        "--verbose", action="store_true", help="Increase output verbosity"
-    )
-    parser.add_argument(
         "--intermediate_output_file",
         required=False,
         type=str,
@@ -209,57 +193,9 @@ def main():
     logging.getLogger().setLevel(getattr(logging, args.log_level.upper()))
 
     logger.info(f"Reading occurrence data from datafile {args.input_file}")
-    # First read actual cols
-    cols_actual = pd.read_csv(args.input_file, sep="\t", nrows=0).columns
-
-    # Load the occurrence data, using only specified columns if provided, and print the number of records loaded
-    col_subset = None
-    if args.columns_required:
-        cols_req = [col.strip() for col in args.columns_required.split(",")]
-        # Check all required columns are in the actual columns of the input file
-        for col in cols_req:
-            if col not in cols_actual:
-                raise ValueError(
-                    f'Required column "{col}" not found in input file. Actual columns are: {cols_actual}'
-                )
-                exit(1)
-        logger.info(f"Only including specified columns: {cols_req}")
-        col_subset = cols_req
-
-    if args.columns_optional:
-        cols_opt = [col.strip() for col in args.columns_optional.split(",")]
-        # Check all optional columns are in the actual columns of the input file
-        for col in cols_opt:
-            if col not in cols_actual:
-                # Just print warning as these can be computed locally if not present in input file
-                logger.warning(
-                    f'Optional column "{col}" not found in input file. Actual columns are: {cols_actual}'
-                )
-        col_subset = (
-            cols_opt if col_subset is None else list(set(col_subset) | set(cols_opt))
-        )
-        logger.info(f"Including optional columns: {cols_opt}")
-
-    if col_subset is not None:
-        logger.info(f"Final list of columns to read from input file: {col_subset}")
-        # We first read the complete set of columns in the input file as this allows us to
-        # use on_bad_lines="skip" to skip any malformed lines, and then we subset the 
-        # dataframe to only include the specified columns. This avoids issues with 
-        # specifying a subset of columns in read_csv when there are malformed lines 
-        # in the input file. 
-        df_occ = pd.read_csv(
-            args.input_file,
-            sep="\t",
-            on_bad_lines="skip",
-            engine="python",
-            dtype=DATA_SCHEMA
-        )
-        # Only keep the columns in col_subset
-        df_occ = df_occ[col_subset]
-    else:
-        df_occ = pd.read_csv(
-            args.input_file, sep="\t", on_bad_lines="skip", engine="python", dtype=DATA_SCHEMA
-        )
+    df_occ = pd.read_csv(
+        args.input_file, sep="\t", on_bad_lines="skip", engine="python", dtype=DATA_SCHEMA
+    ) 
     logger.info(f"Loaded occurrence data from {args.input_file} with {len(df_occ)} records")
 
     # Display sample of occurrence data
@@ -344,7 +280,6 @@ def main():
             for date in eventdate_uniq:
                 offset = date2offset(date, unit=date_offset_unit)
                 eventdate_offset_mapping[date] = offset
-            if args.verbose:
                 logger.info(
                     f"... generated {len(eventdate_offset_mapping)} unique eventdate offsets"
                 )
