@@ -1,6 +1,7 @@
 import argparse
 import logging
 import pandas as pd
+import csv
 from geonomia_dtypes import DATA_SCHEMA
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ def main():
     for arg, value in vars(args).items():
         logger.info(f"  {arg}: {value}")
     logger.info(f"Reading occurrence data from {args.occ_file} and clustered data from {args.occ_clustered_file} to create joined output in {args.output_file}")
-    df_occ = pd.read_csv(args.occ_file, sep='\t', compression='zip', on_bad_lines="skip", engine='python', dtype=DATA_SCHEMA)
+    df_occ = pd.read_csv(args.occ_file, sep='\t', compression='zip', quoting=csv.QUOTE_NONE, on_bad_lines="skip", engine='python', dtype=DATA_SCHEMA)
     logger.info(f"Loaded {len(df_occ)} occurrences from {args.occ_file}")
     logger.info(f"Columns in occurrence file: {df_occ.columns.tolist()}")
     eligibility_columns = [col for col in df_occ.columns if col.endswith('_eligible')]
@@ -145,7 +146,7 @@ def main():
     logger.info(df_joined['coordinate_source'].value_counts(dropna=False))
 
     # Save the joined data to a new TSV file
-    df_joined.to_csv(args.output_file, sep='\t', index=False)
+    df_joined.to_csv(args.output_file, sep='\t', quoting=csv.QUOTE_ALL, index=False)
 
 if __name__ == "__main__":
     main()
