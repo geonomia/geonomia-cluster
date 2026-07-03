@@ -1,4 +1,5 @@
 import argparse
+import csv
 import json
 import pandas as pd
 import re
@@ -194,7 +195,7 @@ def main():
 
     logger.info(f"Reading occurrence data from datafile {args.input_file}")
     df_occ = pd.read_csv(
-        args.input_file, sep="\t", on_bad_lines="skip", engine="python", dtype=DATA_SCHEMA
+        args.input_file, sep="\t", quoting=csv.QUOTE_NONE, on_bad_lines="skip", engine="python", dtype=DATA_SCHEMA
     ) 
     logger.info(f"Loaded occurrence data from {args.input_file} with {len(df_occ)} records")
 
@@ -328,7 +329,7 @@ def main():
     )
 
     if args.intermediate_output_file:
-        df_rb.to_csv(args.intermediate_output_file, sep="\t", index=False)
+        df_rb.to_csv(args.intermediate_output_file, sep="\t", quoting=csv.QUOTE_ALL, index=False)
         logger.info(
             f"{len(df_rb)} lines of intermediate data on recordedby parsing saved to {args.intermediate_output_file}"
         )
@@ -390,7 +391,7 @@ def main():
 
     # Save augmented data ready for clustering
     # # Save the merged dataframe to a new CSV file
-    df_occ.to_csv(args.output_file, sep="\t", index=False)
+    df_occ.to_csv(args.output_file, sep="\t", quoting=csv.QUOTE_ALL, index=False)
     logger.info(f"{len(df_occ)} lines of prepared data saved to {args.output_file}")
 
 
